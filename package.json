@@ -1,0 +1,24 @@
+{
+  "name": "elm-workshop",
+  "version": "0.0.1",
+  "description": "suport libraries for @rtfeldman's elm workshop",
+  "main": "",
+  "dependencies": {
+    "elm": "^0.18.0",
+    "elm-css": "^0.6.0",
+    "elm-live": "^2.6.1",
+    "elm-test": "^0.18.2"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noe-code/elm-workshop.git"
+  },
+  "author": "Noe",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/noe-code/elm-workshop/issues"
+  },
+  "homepage": "https://github.com/noe-code/elm-workshop#readme"
+}
