@@ -5,7 +5,7 @@ import Html.Attributes exposing (class, href, target)
 import Html.Events exposing (onClick)
 
 
-type alias Result =
+type alias SearchResult =
     { id : Int
     , name : String
     , stars : Int
@@ -13,7 +13,9 @@ type alias Result =
 
 
 type alias Model =
-    { results : List Result }
+    { query : String
+    , results : List SearchResult
+    }
 
 
 
@@ -22,7 +24,8 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { results =
+    { query = ""
+    , results =
         [ { id = 1
           , name = "TheSeamau5/elm-checkerboardgrid-tutorial"
           , stars = 66
@@ -74,12 +77,12 @@ viewHeader =
         ]
 
 
-viewResults : List Result -> Html Msg
+viewResults : List SearchResult -> Html Msg
 viewResults results =
     ul [ class "results" ] (List.map viewSearchResults results)
 
 
-viewSearchResults : Result -> Html Msg
+viewSearchResults : SearchResult -> Html Msg
 viewSearchResults result =
     li []
         [ span [ class "star-count" ]
