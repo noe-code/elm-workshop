@@ -1,8 +1,8 @@
 module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (class, href, target, defaultValue)
+import Html.Events exposing (onClick, onInput)
 
 
 type alias SearchResult =
@@ -24,7 +24,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { query = ""
+    { query = "Tutorial"
     , results =
         [ { id = 1
           , name = "TheSeamau5/elm-checkerboardgrid-tutorial"
@@ -56,6 +56,7 @@ initialModel =
 
 type Msg
     = DeleteById Int
+    | SetQuery String
 
 
 update : Msg -> Model -> Model
@@ -63,6 +64,9 @@ update msg model =
     case msg of
         DeleteById id ->
             { model | results = List.filter (\result -> result.id /= id) model.results }
+
+        SetQuery str ->
+            { model | query = str |> Debug.log "Debugging" }
 
 
 
@@ -95,10 +99,19 @@ viewSearchResults result =
         ]
 
 
+viewSearch : String -> Html Msg
+viewSearch query =
+    div []
+        [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
+        , button [ class "search-button" ] [ text "Search" ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div [ class "content" ]
         [ viewHeader
+        , viewSearch model.query
         , viewResults model.results
         ]
 
