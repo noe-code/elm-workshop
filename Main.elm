@@ -3,6 +3,8 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (class, href, target, defaultValue)
 import Html.Events exposing (onClick, onInput)
+import FakeResponse
+import Json.Decode exposing (decodeString)
 
 
 type alias SearchResult =
@@ -25,29 +27,76 @@ type alias Model =
 initialModel : Model
 initialModel =
     { query = "Tutorial"
-    , results =
-        [ { id = 1
-          , name = "TheSeamau5/elm-checkerboardgrid-tutorial"
-          , stars = 66
-          }
-        , { id = 2
-          , name = "grzegorzbalcerek/elm-by-example"
-          , stars = 41
-          }
-        , { id = 3
-          , name = "sporto/elm-tutorial-app"
-          , stars = 35
-          }
-        , { id = 4
-          , name = "jvoigtlaender/Elm-Tutorium"
-          , stars = 10
-          }
-        , { id = 5
-          , name = "sporto/elm-tutorial-assets"
-          , stars = 7
-          }
-        ]
+    , results = fakeResuts
     }
+
+
+
+{-
+   { query = "Tutorial"
+   , results =
+       [ { id = 1
+         , name = "TheSeamau5/elm-checkerboardgrid-tutorial"
+         , stars = 66
+         }
+       , { id = 2
+         , name = "grzegorzbalcerek/elm-by-example"
+         , stars = 41
+         }
+       , { id = 3
+         , name = "sporto/elm-tutorial-app"
+         , stars = 35
+         }
+       , { id = 4
+         , name = "jvoigtlaender/Elm-Tutorium"
+         , stars = 10
+         }
+       , { id = 5
+         , name = "sporto/elm-tutorial-assets"
+         , stars = 7
+         }
+       ]
+   }
+-}
+-- DECODERS
+
+
+fakeResuts : List SearchResult
+fakeResuts =
+    decodeResults FakeResponse.json
+
+
+decodeResults : String -> List SearchResult
+decodeResults json =
+    case (decodeString githubDecoder json) of
+        Ok something ->
+            something
+
+        Err error ->
+            let
+                _ =
+                    Debug.log "el error es" error
+            in
+                []
+
+
+githubDecoder : Json.Decode.Decoder (List SearchResult)
+githubDecoder =
+    Json.Decode.field "items" searchResultsDecoder
+
+
+searchResultsDecoder : Json.Decode.Decoder (List SearchResult)
+searchResultsDecoder =
+    Json.Decode.list searchResultDecoder
+
+
+searchResultDecoder : Json.Decode.Decoder SearchResult
+searchResultDecoder =
+    Json.Decode.map3
+        SearchResult
+        (Json.Decode.field "id" Json.Decode.int)
+        (Json.Decode.field "full_name" Json.Decode.string)
+        (Json.Decode.field "stargazers_count" Json.Decode.int)
 
 
 
