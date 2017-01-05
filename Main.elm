@@ -7,6 +7,9 @@ import FakeResponse
 import Json.Decode exposing (decodeString)
 
 
+-- TYPE ALIAS
+
+
 type alias SearchResult =
     { id : Int
     , name : String
@@ -32,32 +35,6 @@ initialModel =
 
 
 
-{-
-   { query = "Tutorial"
-   , results =
-       [ { id = 1
-         , name = "TheSeamau5/elm-checkerboardgrid-tutorial"
-         , stars = 66
-         }
-       , { id = 2
-         , name = "grzegorzbalcerek/elm-by-example"
-         , stars = 41
-         }
-       , { id = 3
-         , name = "sporto/elm-tutorial-app"
-         , stars = 35
-         }
-       , { id = 4
-         , name = "jvoigtlaender/Elm-Tutorium"
-         , stars = 10
-         }
-       , { id = 5
-         , name = "sporto/elm-tutorial-assets"
-         , stars = 7
-         }
-       ]
-   }
--}
 -- DECODERS
 
 
@@ -69,8 +46,8 @@ fakeResuts =
 decodeResults : String -> List SearchResult
 decodeResults json =
     case (decodeString githubDecoder json) of
-        Ok something ->
-            something
+        Ok searchResults ->
+            searchResults
 
         Err error ->
             let
@@ -82,21 +59,14 @@ decodeResults json =
 
 githubDecoder : Json.Decode.Decoder (List SearchResult)
 githubDecoder =
-    Json.Decode.field "items" searchResultsDecoder
-
-
-searchResultsDecoder : Json.Decode.Decoder (List SearchResult)
-searchResultsDecoder =
-    Json.Decode.list searchResultDecoder
-
-
-searchResultDecoder : Json.Decode.Decoder SearchResult
-searchResultDecoder =
-    Json.Decode.map3
-        SearchResult
-        (Json.Decode.field "id" Json.Decode.int)
-        (Json.Decode.field "full_name" Json.Decode.string)
-        (Json.Decode.field "stargazers_count" Json.Decode.int)
+    Json.Decode.at [ "items" ]
+        (Json.Decode.list
+            (Json.Decode.map3 SearchResult
+                (Json.Decode.field "id" Json.Decode.int)
+                (Json.Decode.field "full_name" Json.Decode.string)
+                (Json.Decode.field "stargazers_count" Json.Decode.int)
+            )
+        )
 
 
 
@@ -122,11 +92,28 @@ update msg model =
 -- VIEW
 
 
+view : Model -> Html Msg
+view model =
+    div [ class "content" ]
+        [ viewHeader
+        , viewSearch model.query
+        , viewResults model.results
+        ]
+
+
 viewHeader : Html a
 viewHeader =
     header []
         [ h1 [] [ text "ElmHub" ]
         , span [ class "tagline" ] [ text "Like GitHub, but for Elm things." ]
+        ]
+
+
+viewSearch : String -> Html Msg
+viewSearch query =
+    div []
+        [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
+        , button [ class "search-button" ] [ text "Search" ]
         ]
 
 
@@ -145,23 +132,6 @@ viewSearchResults result =
             ]
         , a [ href ("https://github.com/" ++ result.name), target "_blank" ] [ text result.name ]
         , button [ class "hide-result", onClick (DeleteById result.id) ] [ text "X" ]
-        ]
-
-
-viewSearch : String -> Html Msg
-viewSearch query =
-    div []
-        [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
-        , button [ class "search-button" ] [ text "Search" ]
-        ]
-
-
-view : Model -> Html Msg
-view model =
-    div [ class "content" ]
-        [ viewHeader
-        , viewSearch model.query
-        , viewResults model.results
         ]
 
 
