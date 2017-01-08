@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (class, href, target, defaultValue)
@@ -31,7 +31,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { query = "Tutorial"
+    { query = ""
     , results = []
     , errorMessage = Nothing
     }
@@ -60,8 +60,10 @@ githubDecoder =
 type Msg
     = DeleteById Int
     | SetQuery String
-    | Search
+    | SearchElm
+    | SearchJS
     | HandleGithubResponse (Result Http.Error (List SearchResult))
+    | HandleGithubResponseFromJS (Result String (List SearchResult))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,14 +75,23 @@ update msg model =
         SetQuery str ->
             ( { model | query = str |> Debug.log "Debugging", errorMessage = Nothing }, Cmd.none )
 
-        Search ->
-            ( { model | errorMessage = Nothing }, searchGithubApi model.query )
+        SearchElm ->
+            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query) )
+
+        SearchJS ->
+            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query) )
 
         HandleGithubResponse (Ok results) ->
             ( { model | results = results }, Cmd.none )
 
         HandleGithubResponse (Err error) ->
             ( { model | errorMessage = Just (handleHttpErrorMessage error) }, Cmd.none )
+
+        HandleGithubResponseFromJS (Ok results) ->
+            ( { model | results = results }, Cmd.none )
+
+        HandleGithubResponseFromJS (Err error) ->
+            ( { model | errorMessage = Just error }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -110,6 +121,15 @@ handleHttpErrorMessage error =
             "JSON Decoder error: " ++ msg
 
 
+githubApiUrl : String -> String
+githubApiUrl query =
+    "https://api.github.com/search/repositories?access_token="
+        ++ Auth.token
+        ++ "&q="
+        ++ query
+        ++ "+language:elm&sort=stars&order=desc"
+
+
 
 -- COMMANDS
 
@@ -117,17 +137,25 @@ handleHttpErrorMessage error =
 searchGithubApi : String -> Cmd Msg
 searchGithubApi query =
     let
-        githubApiUrl =
-            "https://api.github.com/search/repositories?access_token="
-                ++ Auth.token
-                ++ "&q="
-                ++ query
-                ++ "+language:elm&sort=stars&order=desc"
-
         getRequest =
-            Http.get githubApiUrl githubDecoder
+            Http.get query githubDecoder
     in
         Http.send HandleGithubResponse getRequest
+
+
+port searchGithubApiWithJS : String -> Cmd a
+
+
+
+-- SUBSCRIPTIONS
+
+
+port responseFromGithubApiWithJS : (Json.Decode.Value -> msg) -> Sub msg
+
+
+decodeResponseFromJS : Json.Decode.Value -> Msg
+decodeResponseFromJS json =
+    HandleGithubResponseFromJS (Json.Decode.decodeValue githubDecoder json)
 
 
 
@@ -156,7 +184,8 @@ viewSearch : String -> Html Msg
 viewSearch query =
     div []
         [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
-        , button [ class "search-button", onClick Search ] [ text "Search" ]
+        , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
+        , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
         ]
 
 
@@ -198,5 +227,5 @@ main =
         { init = ( initialModel, Cmd.none )
         , view = view
         , update = update
-        , subscriptions = (\_ -> Sub.none)
+        , subscriptions = (\_ -> responseFromGithubApiWithJS decodeResponseFromJS)
         }
