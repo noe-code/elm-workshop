@@ -10,7 +10,11 @@
     "elm-test": "^0.18.2"
   },
   "devDependencies": {},
-  "scripts": {},
+  "scripts": {
+    "elm-live": "elm-live Main.elm --open --pushstate --output elm.js",
+    "elm-test": "elm-test",
+    "elm-reactor": "elm-reactor"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/noe-code/elm-workshop.git"

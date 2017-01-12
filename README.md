@@ -12,7 +12,7 @@ Getting Started
 4. Run the following command to install everything else:
 
 ```bash
-npm install
+npm install -g elm elm-test elm-css elm-live
 ```
 **Note to macOS users:** If step 4 gives you an `EACCESS` error, try [this fix](https://docs.npmjs.com/getting-started/fixing-npm-permissions):
 
@@ -60,3 +60,23 @@ elm-package install
 ```bash
 elm-live Main.elm --open --pushstate --output=elm.js
 ```
+
+## Running Tests
+
+Do either (or both!) of the following:
+
+### Running tests on the command line
+
+```bash
+elm-test
+```
+
+
+### Running tests in a browser
+
+```bash
+cd tests
+elm-reactor
+```
+
+Then visit [localhost:8000](http://localhost:8000) and choose `HtmlRunner.elm`.
