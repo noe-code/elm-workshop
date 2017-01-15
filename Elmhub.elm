@@ -1,7 +1,7 @@
 port module Elmhub exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target, defaultValue)
+import Html.Attributes exposing (class, href, target, defaultValue, type_)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeString)
 import Http
@@ -22,6 +22,8 @@ type alias Model =
     { query : String
     , results : List SearchResult
     , errorMessage : Maybe String
+    , minStars : Int
+    , minStarsError : Maybe String
     }
 
 
@@ -34,6 +36,8 @@ initialModel =
     { query = ""
     , results = []
     , errorMessage = Nothing
+    , minStars = 5
+    , minStarsError = Nothing
     }
 
 
@@ -69,6 +73,7 @@ type Msg
     | SearchJS
     | HandleGithubResponse (Result Http.Error (List SearchResult))
     | HandleGithubResponseFromJS (Result String (List SearchResult))
+    | SetMinStars String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -81,10 +86,10 @@ update msg model =
             ( { model | query = str |> Debug.log "Debugging", errorMessage = Nothing }, Cmd.none )
 
         SearchElm ->
-            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query) )
+            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query model.minStars) )
 
         SearchJS ->
-            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query) )
+            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query model.minStars) )
 
         HandleGithubResponse (Ok results) ->
             ( { model | results = results }, Cmd.none )
@@ -97,6 +102,14 @@ update msg model =
 
         HandleGithubResponseFromJS (Err error) ->
             ( { model | errorMessage = Just error }, Cmd.none )
+
+        SetMinStars str ->
+            case (String.toInt str) of
+                Ok minStars ->
+                    ( { model | minStars = minStars, minStarsError = Nothing }, Cmd.none )
+
+                Err err ->
+                    ( { model | minStarsError = Just "Must be a number!" }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -126,12 +139,14 @@ handleHttpErrorMessage error =
             "JSON Decoder error: " ++ msg
 
 
-githubApiUrl : String -> String
-githubApiUrl query =
+githubApiUrl : String -> Int -> String
+githubApiUrl query minStars =
     "https://api.github.com/search/repositories?access_token="
         ++ Auth.token
         ++ "&q="
         ++ query
+        ++ "+stars:>="
+        ++ (minStars |> toString)
         ++ "+language:elm&sort=stars&order=desc"
 
 
@@ -169,6 +184,15 @@ subscriptions =
 
 
 
+-- CUSTOM EVENT HANDLERS
+
+
+onBlurWithTargetValue : (String -> msg) -> Attribute msg
+onBlurWithTargetValue toMsg =
+    Html.Events.on "blur" (Json.Decode.map toMsg Html.Events.targetValue)
+
+
+
 -- VIEW
 
 
@@ -176,7 +200,7 @@ view : Model -> Html Msg
 view model =
     div [ class "content" ]
         [ viewHeader
-        , viewSearch model.query
+        , viewSearch model
         , viewErrorMessage model.errorMessage
         , viewResults model.results
         ]
@@ -190,13 +214,36 @@ viewHeader =
         ]
 
 
-viewSearch : String -> Html Msg
-viewSearch query =
-    div []
-        [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
-        , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
-        , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
-        ]
+viewSearch : Model -> Html Msg
+viewSearch model =
+    let
+        viewMinStarsInput =
+            div []
+                [ label [ class "top-label" ] [ text "Minimun Stars" ]
+                , input [ type_ "text", onBlurWithTargetValue SetMinStars, defaultValue (toString model.minStars) ] []
+                ]
+
+        viewMinStarsError =
+            case model.minStarsError of
+                Just error ->
+                    div [ class "stars-error" ] [ text error ]
+
+                Nothing ->
+                    div [] [ text "" ]
+    in
+        div [ class "search" ]
+            [ div [ class "search-options" ]
+                [ div [ class "search-option" ]
+                    [ viewMinStarsInput
+                    , viewMinStarsError
+                    ]
+                ]
+            , div [ class "search-input" ]
+                [ input [ class "search-query", onInput SetQuery, defaultValue model.query ] []
+                , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
+                , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
+                ]
+            ]
 
 
 viewErrorMessage : Maybe String -> Html a
