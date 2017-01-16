@@ -1,7 +1,7 @@
 port module Elmhub exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target, defaultValue, type_)
+import Html.Attributes exposing (class, href, target, defaultValue, type_, value, selected)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeString)
 import Http
@@ -24,6 +24,7 @@ type alias Model =
     , errorMessage : Maybe String
     , minStars : Int
     , minStarsError : Maybe String
+    , searchIn : String
     }
 
 
@@ -38,6 +39,7 @@ initialModel =
     , errorMessage = Nothing
     , minStars = 5
     , minStarsError = Nothing
+    , searchIn = "name"
     }
 
 
@@ -74,6 +76,7 @@ type Msg
     | HandleGithubResponse (Result Http.Error (List SearchResult))
     | HandleGithubResponseFromJS (Result String (List SearchResult))
     | SetMinStars String
+    | SetSearchIn String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -86,10 +89,10 @@ update msg model =
             ( { model | query = str |> Debug.log "Debugging", errorMessage = Nothing }, Cmd.none )
 
         SearchElm ->
-            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query model.minStars) )
+            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query model.minStars model.searchIn) )
 
         SearchJS ->
-            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query model.minStars) )
+            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query model.minStars model.searchIn) )
 
         HandleGithubResponse (Ok results) ->
             ( { model | results = results }, Cmd.none )
@@ -110,6 +113,9 @@ update msg model =
 
                 Err err ->
                     ( { model | minStarsError = Just "Must be a number!" }, Cmd.none )
+
+        SetSearchIn searchIn ->
+            ( { model | searchIn = searchIn }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -139,12 +145,14 @@ handleHttpErrorMessage error =
             "JSON Decoder error: " ++ msg
 
 
-githubApiUrl : String -> Int -> String
-githubApiUrl query minStars =
+githubApiUrl : String -> Int -> String -> String
+githubApiUrl query minStars searchIn =
     "https://api.github.com/search/repositories?access_token="
         ++ Auth.token
         ++ "&q="
         ++ query
+        ++ "+in:"
+        ++ searchIn
         ++ "+stars:>="
         ++ (minStars |> toString)
         ++ "+language:elm&sort=stars&order=desc"
@@ -192,6 +200,11 @@ onBlurWithTargetValue toMsg =
     Html.Events.on "blur" (Json.Decode.map toMsg Html.Events.targetValue)
 
 
+onChange : (String -> msg) -> Attribute msg
+onChange toMsg =
+    Html.Events.on "change" (Json.Decode.map toMsg Html.Events.targetValue)
+
+
 
 -- VIEW
 
@@ -230,6 +243,16 @@ viewSearch model =
 
                 Nothing ->
                     div [] [ text "" ]
+
+        viewSearchIn =
+            div [ class "search-option" ]
+                [ label [ class "top-label" ] [ text "Search In" ]
+                , select [ onChange SetSearchIn ]
+                    [ option [ value "name", selected True ] [ text "Name" ]
+                    , option [ value "description" ] [ text "Description" ]
+                    , option [ value "name,description" ] [ text "Name & Description" ]
+                    ]
+                ]
     in
         div [ class "search" ]
             [ div [ class "search-options" ]
@@ -237,6 +260,7 @@ viewSearch model =
                     [ viewMinStarsInput
                     , viewMinStarsError
                     ]
+                , viewSearchIn
                 ]
             , div [ class "search-input" ]
                 [ input [ class "search-query", onInput SetQuery, defaultValue model.query ] []
