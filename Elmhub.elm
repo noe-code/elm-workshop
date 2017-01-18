@@ -1,7 +1,7 @@
 port module Elmhub exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target, defaultValue, type_, value, selected)
+import Html.Attributes exposing (class, href, target, defaultValue, type_, value, selected, placeholder)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeString)
 import Http
@@ -25,6 +25,7 @@ type alias Model =
     , minStars : Int
     , minStarsError : Maybe String
     , searchIn : String
+    , userFilter : String
     }
 
 
@@ -40,6 +41,7 @@ initialModel =
     , minStars = 5
     , minStarsError = Nothing
     , searchIn = "name"
+    , userFilter = ""
     }
 
 
@@ -77,6 +79,7 @@ type Msg
     | HandleGithubResponseFromJS (Result String (List SearchResult))
     | SetMinStars String
     | SetSearchIn String
+    | SetUserFilter String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,10 +92,10 @@ update msg model =
             ( { model | query = str |> Debug.log "Debugging", errorMessage = Nothing }, Cmd.none )
 
         SearchElm ->
-            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model.query model.minStars model.searchIn) )
+            ( { model | errorMessage = Nothing }, searchGithubApi (githubApiUrl model) )
 
         SearchJS ->
-            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model.query model.minStars model.searchIn) )
+            ( { model | errorMessage = Nothing }, searchGithubApiWithJS (githubApiUrl model) )
 
         HandleGithubResponse (Ok results) ->
             ( { model | results = results }, Cmd.none )
@@ -116,6 +119,9 @@ update msg model =
 
         SetSearchIn searchIn ->
             ( { model | searchIn = searchIn }, Cmd.none )
+
+        SetUserFilter userFilter ->
+            ( { model | userFilter = userFilter }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -145,16 +151,21 @@ handleHttpErrorMessage error =
             "JSON Decoder error: " ++ msg
 
 
-githubApiUrl : String -> Int -> String -> String
-githubApiUrl query minStars searchIn =
+githubApiUrl : Model -> String
+githubApiUrl model =
     "https://api.github.com/search/repositories?access_token="
         ++ Auth.token
         ++ "&q="
-        ++ query
+        ++ model.query
         ++ "+in:"
-        ++ searchIn
+        ++ model.searchIn
         ++ "+stars:>="
-        ++ (minStars |> toString)
+        ++ (model.minStars |> toString)
+        ++ (if String.isEmpty model.userFilter then
+                ""
+            else
+                "+user:" ++ model.userFilter
+           )
         ++ "+language:elm&sort=stars&order=desc"
 
 
@@ -236,6 +247,12 @@ viewSearch model =
                 , input [ type_ "text", onBlurWithTargetValue SetMinStars, defaultValue (toString model.minStars) ] []
                 ]
 
+        viewUserFilter =
+            div [ class "search-option" ]
+                [ label [ class "top-label" ] [ text "Owned by" ]
+                , input [ type_ "text", onInput SetUserFilter, defaultValue model.userFilter, placeholder "Github Username" ] []
+                ]
+
         viewMinStarsError =
             case model.minStarsError of
                 Just error ->
@@ -260,6 +277,7 @@ viewSearch model =
                     [ viewMinStarsInput
                     , viewMinStarsError
                     ]
+                , viewUserFilter
                 , viewSearchIn
                 ]
             , div [ class "search-input" ]
