@@ -241,25 +241,32 @@ viewHeader =
 viewSearch : Model -> Html Msg
 viewSearch model =
     let
-        viewMinStarsInput =
-            div []
-                [ label [ class "top-label" ] [ text "Minimun Stars" ]
-                , input [ type_ "text", onBlurWithTargetValue SetMinStars, defaultValue (toString model.minStars) ] []
-                ]
+        viewMinStars =
+            let
+                viewMinStarsInput =
+                    div []
+                        [ label [ class "top-label" ] [ text "Minimun Stars" ]
+                        , input [ type_ "text", onBlurWithTargetValue SetMinStars, defaultValue (toString model.minStars) ] []
+                        ]
+
+                viewMinStarsError =
+                    case model.minStarsError of
+                        Just error ->
+                            div [ class "stars-error" ] [ text error ]
+
+                        Nothing ->
+                            div [] [ text "" ]
+            in
+                div [ class "search-option" ]
+                    [ viewMinStarsInput
+                    , viewMinStarsError
+                    ]
 
         viewUserFilter =
             div [ class "search-option" ]
                 [ label [ class "top-label" ] [ text "Owned by" ]
                 , input [ type_ "text", onInput SetUserFilter, defaultValue model.userFilter, placeholder "Github Username" ] []
                 ]
-
-        viewMinStarsError =
-            case model.minStarsError of
-                Just error ->
-                    div [ class "stars-error" ] [ text error ]
-
-                Nothing ->
-                    div [] [ text "" ]
 
         viewSearchIn =
             div [ class "search-option" ]
@@ -273,10 +280,7 @@ viewSearch model =
     in
         div [ class "search" ]
             [ div [ class "search-options" ]
-                [ div [ class "search-option" ]
-                    [ viewMinStarsInput
-                    , viewMinStarsError
-                    ]
+                [ viewMinStars
                 , viewUserFilter
                 , viewSearchIn
                 ]
