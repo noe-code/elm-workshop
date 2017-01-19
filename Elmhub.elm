@@ -1,11 +1,12 @@
 port module Elmhub exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target, defaultValue, type_, value, selected, placeholder)
+import Html.Attributes exposing (class, href, target, defaultValue)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode exposing (decodeString)
 import Http
 import Auth
+import SearchOptions exposing (..)
 
 
 -- TYPE ALIAS
@@ -22,15 +23,7 @@ type alias Model =
     { query : String
     , results : List SearchResult
     , errorMessage : Maybe String
-    , searchOptions : SearchOptionsModel
-    }
-
-
-type alias SearchOptionsModel =
-    { minStars : Int
-    , minStarsError : Maybe String
-    , searchIn : String
-    , userFilter : String
+    , searchOptions : SearchOptions.Model
     }
 
 
@@ -43,21 +36,7 @@ initialModel =
     { query = ""
     , results = []
     , errorMessage = Nothing
-    , searchOptions =
-        { minStars = 5
-        , minStarsError = Nothing
-        , searchIn = "name"
-        , userFilter = ""
-        }
-    }
-
-
-searchOptionsInitialModel : SearchOptionsModel
-searchOptionsInitialModel =
-    { minStars = 5
-    , minStarsError = Nothing
-    , searchIn = "name"
-    , userFilter = ""
+    , searchOptions = SearchOptions.initialModel
     }
 
 
@@ -93,13 +72,7 @@ type Msg
     | SearchJS
     | HandleGithubResponse (Result Http.Error (List SearchResult))
     | HandleGithubResponseFromJS (Result String (List SearchResult))
-    | SearchOptions SearchOptionsMsg
-
-
-type SearchOptionsMsg
-    = SetMinStars String
-    | SetSearchIn String
-    | SetUserFilter String
+    | SearchOptions SearchOptions.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -130,25 +103,7 @@ update msg model =
             ( { model | errorMessage = Just error }, Cmd.none )
 
         SearchOptions searchOptionsMsg ->
-            ( { model | searchOptions = updateSearchOptions searchOptionsMsg model.searchOptions }, Cmd.none )
-
-
-updateSearchOptions : SearchOptionsMsg -> SearchOptionsModel -> SearchOptionsModel
-updateSearchOptions searchOptionsMsg searchOptionsModel =
-    case searchOptionsMsg of
-        SetMinStars str ->
-            case (String.toInt str) of
-                Ok minStars ->
-                    { searchOptionsModel | minStars = minStars, minStarsError = Nothing }
-
-                Err err ->
-                    { searchOptionsModel | minStarsError = Just "Must be a number!" }
-
-        SetSearchIn searchIn ->
-            { searchOptionsModel | searchIn = searchIn }
-
-        SetUserFilter userFilter ->
-            { searchOptionsModel | userFilter = userFilter }
+            ( { model | searchOptions = SearchOptions.update searchOptionsMsg model.searchOptions }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -230,20 +185,6 @@ subscriptions =
 
 
 
--- CUSTOM EVENT HANDLERS
-
-
-onBlurWithTargetValue : (String -> msg) -> Attribute msg
-onBlurWithTargetValue toMsg =
-    Html.Events.on "blur" (Json.Decode.map toMsg Html.Events.targetValue)
-
-
-onChange : (String -> msg) -> Attribute msg
-onChange toMsg =
-    Html.Events.on "change" (Json.Decode.map toMsg Html.Events.targetValue)
-
-
-
 -- VIEW
 
 
@@ -268,7 +209,7 @@ viewHeader =
 viewSearch : Model -> Html Msg
 viewSearch model =
     div [ class "search" ]
-        [ Html.map SearchOptions (viewSearchOptions model.searchOptions)
+        [ Html.map SearchOptions (SearchOptions.view model.searchOptions)
         , viewSearchInput model.query
         ]
 
@@ -280,74 +221,6 @@ viewSearchInput query =
         , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
         , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
         ]
-
-
-
--- Beging view search options
-
-
-viewSearchOptions : SearchOptionsModel -> Html SearchOptionsMsg
-viewSearchOptions searchOptionsModel =
-    div [ class "search-options" ]
-        [ viewMinStars searchOptionsModel.minStars searchOptionsModel.minStarsError
-        , viewUserFilter searchOptionsModel.userFilter
-        , viewSearchIn
-        ]
-
-
-viewMinStars : Int -> Maybe String -> Html SearchOptionsMsg
-viewMinStars minStars minStarsError =
-    div [ class "search-option" ]
-        [ viewMinStarsInput minStars
-        , viewMinStarsError minStarsError
-        ]
-
-
-viewMinStarsInput : Int -> Html SearchOptionsMsg
-viewMinStarsInput minStars =
-    div []
-        [ label [ class "top-label" ] [ text "Minimun Stars" ]
-        , input
-            [ type_ "text"
-            , onBlurWithTargetValue SetMinStars
-            , defaultValue (toString minStars)
-            ]
-            []
-        ]
-
-
-viewMinStarsError : Maybe String -> Html a
-viewMinStarsError minStarsError =
-    case minStarsError of
-        Just error ->
-            div [ class "stars-error" ] [ text error ]
-
-        Nothing ->
-            div [] [ text "" ]
-
-
-viewUserFilter : String -> Html SearchOptionsMsg
-viewUserFilter userFilter =
-    div [ class "search-option" ]
-        [ label [ class "top-label" ] [ text "Owned by" ]
-        , input [ type_ "text", onInput SetUserFilter, defaultValue userFilter, placeholder "Github Username" ] []
-        ]
-
-
-viewSearchIn : Html SearchOptionsMsg
-viewSearchIn =
-    div [ class "search-option" ]
-        [ label [ class "top-label" ] [ text "Search In" ]
-        , select [ onChange SetSearchIn ]
-            [ option [ value "name", selected True ] [ text "Name" ]
-            , option [ value "description" ] [ text "Description" ]
-            , option [ value "name,description" ] [ text "Name & Description" ]
-            ]
-        ]
-
-
-
--- End view search options
 
 
 viewErrorMessage : Maybe String -> Html a
