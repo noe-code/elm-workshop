@@ -242,11 +242,16 @@ viewSearch : Model -> Html Msg
 viewSearch model =
     div [ class "search" ]
         [ viewSearchOptions model
-        , div [ class "search-input" ]
-            [ input [ class "search-query", onInput SetQuery, defaultValue model.query ] []
-            , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
-            , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
-            ]
+        , viewSearchInput model.query
+        ]
+
+
+viewSearchInput : String -> Html Msg
+viewSearchInput query =
+    div [ class "search-input" ]
+        [ input [ class "search-query", onInput SetQuery, defaultValue query ] []
+        , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
+        , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
         ]
 
 
