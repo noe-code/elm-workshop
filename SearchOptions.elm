@@ -3,21 +3,7 @@ module SearchOptions exposing (Model, Msg, update, view, initialModel)
 import Html exposing (..)
 import Html.Attributes exposing (class, type_, placeholder, target, value, selected, defaultValue)
 import Html.Events exposing (onInput)
-import Json.Decode
-
-
--- CUSTOM EVENT HANDLERS
-
-
-onBlurWithTargetValue : (String -> msg) -> Attribute msg
-onBlurWithTargetValue toMsg =
-    Html.Events.on "blur" (Json.Decode.map toMsg Html.Events.targetValue)
-
-
-onChange : (String -> msg) -> Attribute msg
-onChange toMsg =
-    Html.Events.on "change" (Json.Decode.map toMsg Html.Events.targetValue)
-
+import EventHandlers exposing (..)
 
 
 -- TYPE ALIAS
