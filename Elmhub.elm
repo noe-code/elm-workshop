@@ -240,56 +240,82 @@ viewHeader =
 
 viewSearch : Model -> Html Msg
 viewSearch model =
-    let
-        viewMinStars =
-            let
-                viewMinStarsInput =
-                    div []
-                        [ label [ class "top-label" ] [ text "Minimun Stars" ]
-                        , input [ type_ "text", onBlurWithTargetValue SetMinStars, defaultValue (toString model.minStars) ] []
-                        ]
-
-                viewMinStarsError =
-                    case model.minStarsError of
-                        Just error ->
-                            div [ class "stars-error" ] [ text error ]
-
-                        Nothing ->
-                            div [] [ text "" ]
-            in
-                div [ class "search-option" ]
-                    [ viewMinStarsInput
-                    , viewMinStarsError
-                    ]
-
-        viewUserFilter =
-            div [ class "search-option" ]
-                [ label [ class "top-label" ] [ text "Owned by" ]
-                , input [ type_ "text", onInput SetUserFilter, defaultValue model.userFilter, placeholder "Github Username" ] []
-                ]
-
-        viewSearchIn =
-            div [ class "search-option" ]
-                [ label [ class "top-label" ] [ text "Search In" ]
-                , select [ onChange SetSearchIn ]
-                    [ option [ value "name", selected True ] [ text "Name" ]
-                    , option [ value "description" ] [ text "Description" ]
-                    , option [ value "name,description" ] [ text "Name & Description" ]
-                    ]
-                ]
-    in
-        div [ class "search" ]
-            [ div [ class "search-options" ]
-                [ viewMinStars
-                , viewUserFilter
-                , viewSearchIn
-                ]
-            , div [ class "search-input" ]
-                [ input [ class "search-query", onInput SetQuery, defaultValue model.query ] []
-                , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
-                , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
-                ]
+    div [ class "search" ]
+        [ viewSearchOptions model
+        , div [ class "search-input" ]
+            [ input [ class "search-query", onInput SetQuery, defaultValue model.query ] []
+            , button [ class "search-button", onClick SearchElm ] [ text "Search Elm" ]
+            , button [ class "search-button", onClick SearchJS ] [ text "Search JS" ]
             ]
+        ]
+
+
+
+-- Beging view search options
+
+
+viewSearchOptions : Model -> Html Msg
+viewSearchOptions model =
+    div [ class "search-options" ]
+        [ viewMinStars model.minStars model.minStarsError
+        , viewUserFilter model.userFilter
+        , viewSearchIn
+        ]
+
+
+viewMinStars : Int -> Maybe String -> Html Msg
+viewMinStars minStars minStarsError =
+    div [ class "search-option" ]
+        [ viewMinStarsInput minStars
+        , viewMinStarsError minStarsError
+        ]
+
+
+viewMinStarsInput : Int -> Html Msg
+viewMinStarsInput minStars =
+    div []
+        [ label [ class "top-label" ] [ text "Minimun Stars" ]
+        , input
+            [ type_ "text"
+            , onBlurWithTargetValue SetMinStars
+            , defaultValue (toString minStars)
+            ]
+            []
+        ]
+
+
+viewMinStarsError : Maybe String -> Html a
+viewMinStarsError minStarsError =
+    case minStarsError of
+        Just error ->
+            div [ class "stars-error" ] [ text error ]
+
+        Nothing ->
+            div [] [ text "" ]
+
+
+viewUserFilter : String -> Html Msg
+viewUserFilter userFilter =
+    div [ class "search-option" ]
+        [ label [ class "top-label" ] [ text "Owned by" ]
+        , input [ type_ "text", onInput SetUserFilter, defaultValue userFilter, placeholder "Github Username" ] []
+        ]
+
+
+viewSearchIn : Html Msg
+viewSearchIn =
+    div [ class "search-option" ]
+        [ label [ class "top-label" ] [ text "Search In" ]
+        , select [ onChange SetSearchIn ]
+            [ option [ value "name", selected True ] [ text "Name" ]
+            , option [ value "description" ] [ text "Description" ]
+            , option [ value "name,description" ] [ text "Name & Description" ]
+            ]
+        ]
+
+
+
+-- End view search options
 
 
 viewErrorMessage : Maybe String -> Html a
