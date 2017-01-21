@@ -7,6 +7,7 @@ import Json.Decode exposing (decodeString)
 import Http
 import Auth
 import SearchOptions exposing (..)
+import Table
 
 
 -- TYPE ALIAS
@@ -24,6 +25,7 @@ type alias Model =
     , results : List SearchResult
     , errorMessage : Maybe String
     , searchOptions : SearchOptions.Model
+    , tableState : Table.State
     }
 
 
@@ -37,6 +39,7 @@ initialModel =
     , results = []
     , errorMessage = Nothing
     , searchOptions = SearchOptions.initialModel
+    , tableState = Table.initialSort "Stars"
     }
 
 
@@ -73,6 +76,7 @@ type Msg
     | HandleGithubResponse (Result Http.Error (List SearchResult))
     | HandleGithubResponseFromJS (Result String (List SearchResult))
     | SearchOptions SearchOptions.Msg
+    | SetTableState Table.State
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -104,6 +108,9 @@ update msg model =
 
         SearchOptions searchOptionsMsg ->
             ( { model | searchOptions = SearchOptions.update searchOptionsMsg model.searchOptions }, Cmd.none )
+
+        SetTableState newTableState ->
+            ( { model | tableState = newTableState }, Cmd.none )
 
 
 handleHttpErrorMessage : Http.Error -> String
@@ -194,7 +201,7 @@ view model =
         [ viewHeader
         , viewSearch model
         , viewErrorMessage model.errorMessage
-        , viewResults model.results
+        , viewResults model.tableState model.results
         ]
 
 
@@ -233,19 +240,49 @@ viewErrorMessage message =
             div [] [ text "" ]
 
 
-viewResults : List SearchResult -> Html Msg
-viewResults results =
-    ul [ class "results" ] (List.map viewSearchResults results)
+viewResults : Table.State -> List SearchResult -> Html Msg
+viewResults currentTableState results =
+    let
+        tableConfig =
+            Table.config
+                { toId = .id >> toString
+                , toMsg = SetTableState
+                , columns =
+                    [ starsCustomColumn
+                    , nameCustomColumn
+                    ]
+                }
+    in
+        Table.view tableConfig currentTableState results
 
 
-viewSearchResults : SearchResult -> Html Msg
-viewSearchResults result =
-    li []
-        [ span [ class "star-count" ]
-            [ result.stars
-                |> toString
-                |> text
-            ]
-        , a [ href ("https://github.com/" ++ result.name), target "_blank" ] [ text result.name ]
-        , button [ class "hide-result", onClick (DeleteById result.id) ] [ text "X" ]
+nameCustomColumn : Table.Column SearchResult Msg
+nameCustomColumn =
+    Table.veryCustomColumn
+        { name = "Name"
+        , viewData = viewNameColumn
+        , sorter = Table.decreasingOrIncreasingBy .name
+        }
+
+
+viewNameColumn : SearchResult -> Table.HtmlDetails Msg
+viewNameColumn searchResult =
+    Table.HtmlDetails []
+        [ a [ href ("https://github.com/" ++ searchResult.name), target "_blank" ] [ text searchResult.name ]
+        , button [ class "hide-result", onClick (DeleteById searchResult.id) ] [ text "X" ]
         ]
+
+
+starsCustomColumn : Table.Column SearchResult Msg
+starsCustomColumn =
+    Table.veryCustomColumn
+        { name = "Stars"
+        , viewData = viewStarsColumn
+        , sorter = Table.decreasingOrIncreasingBy .stars
+        }
+
+
+viewStarsColumn : SearchResult -> Table.HtmlDetails Msg
+viewStarsColumn searchResult =
+    Table.HtmlDetails []
+        [ span [ class "star-count" ] [ searchResult.stars |> toString |> text ] ]
