@@ -140,22 +140,42 @@ handleHttpErrorMessage error =
             "JSON Decoder error: " ++ msg
 
 
+
+--PATERNS
+-- "?key+value"
+-- "&key=value"
+-- "+key:value"
+
+
 githubApiUrl : Model -> String
 githubApiUrl model =
-    "https://api.github.com/search/repositories?access_token="
-        ++ Auth.token
-        ++ "&q="
-        ++ model.query
-        ++ "+in:"
-        ++ model.searchOptions.searchIn
-        ++ "+stars:>="
-        ++ (model.searchOptions.minStars |> toString)
-        ++ (if String.isEmpty model.searchOptions.userFilter then
+    let
+        questionKeyEqualsValue key value =
+            "?" ++ key ++ "=" ++ value
+
+        ampersandKeyEqualsValue key value =
+            "&" ++ key ++ "=" ++ value
+
+        plusKeyColonValue key value =
+            if String.isEmpty value then
                 ""
             else
-                "+user:" ++ model.searchOptions.userFilter
-           )
-        ++ "+language:elm&sort=stars&order=desc"
+                "+" ++ key ++ ":" ++ value
+
+        query =
+            let
+                minStars =
+                    ">=" ++ (model.searchOptions.minStars |> toString)
+            in
+                model.query
+                    ++ plusKeyColonValue "in" model.searchOptions.searchIn
+                    ++ plusKeyColonValue "stars" minStars
+                    ++ plusKeyColonValue "user" model.searchOptions.userFilter
+                    ++ plusKeyColonValue "language" "elm"
+    in
+        "https://api.github.com/search/repositories"
+            ++ questionKeyEqualsValue "access_token" Auth.token
+            ++ ampersandKeyEqualsValue "q" query
 
 
 
